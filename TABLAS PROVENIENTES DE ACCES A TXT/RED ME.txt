@@ -1,0 +1,28 @@
+Bitácora de preparación de datos para ser utilizados en DB BROWSER
+
+
+Tarea: 2026/06/10 Este día he creado la primera tabla extraída de SIGATLAS en Acces, a formato .txt
+
+Problema encontrado: La tabla pozos master usa . como separador decimal de las cantidades. La tablas Pozos Nivel también usa . como separador decimal
+La tabla Pozos Química usa , como separador decimal. 
+
+Solución/Resultado: 
+Se exportó archivo Pozos Master.txt con separador (;) y el (.) separa los decimales en las tablas con número tipo float o reales
+La tabla POZOS.txt Nivel se exporto con separador (;)  y el (.) separa los decimales en las tablas con número tipo float o reales
+
+La tabla Pozos Química.txt se exporto con el separador (;)  y la (,) separa los decimales en las tablas con número tipo float o reales
+
+Se esta usando (;) para evitar discrepancias entre los separadores y los puntos decimales. 
+
+Tarea: 2026/06/11 Dado que el día de ayer al montar las tablas en DB BROWSER, las columnas de valores numericos al cargarse, 
+si tenian campos vacios hacian que la importación cambiara el tipo de dato a TEXT, aún cuando el tipo de dato era INTEGER O REAL, se 
+procederá a trabajar los datos con python y la librería PANDAS a fin de automatizar dos cosas
+
+1) Colocar el mismo simbolo de separador decimal para todas las tablas (.) ya que sqlite entiende con el punto el separador decimal de las columnas con numeros reales.
+2) Para evitar que en la importación las columnas numericas se transformen en texto se procesara con pandas, cada tabla y se llevaran al formato deseado.
+
+Problemas encontrado: Columnas con numero y campos vacíos, la columna de fecha se comportaba como texto
+
+Solución/Resultado:
+Se ha generado el script 12062026_SCRIP_ETL_POZOS_MASTER, el cual realiza el pipeline de extracción limpieza y carga ETL, de la tabla de Pozos Master,
+la conexión creada a una nueva BBDD, y el .csv correspondiente tienen resueltos los conflictos mencionados anteriormente.
