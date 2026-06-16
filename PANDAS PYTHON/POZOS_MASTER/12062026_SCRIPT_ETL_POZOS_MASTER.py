@@ -11,7 +11,9 @@ DESCRIPCIÓN:
 """
 
 import pandas as pd
-import sqlite3
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
+import os
 
 # ==========================================
 # 1. EXTRACCIÓN (Ingesta de datos crudos)
@@ -54,7 +56,7 @@ df['ACT_MASTER'] = pd.to_datetime(df['ACT_MASTER'], dayfirst=True, errors='coerc
 # Esto garantiza compatibilidad óptima con los tipos de datos DATE de los motores SQL.
 df['ACT_MASTER'] = df['ACT_MASTER'].dt.normalize()
 
-
+df.columns = df.columns.str.lower() #Columnas en minusculas para mejor desempoño en PostgresSQL
 # ==========================================
 # 3. CARGA (Persistencia de Datos)
 # ==========================================
@@ -63,15 +65,31 @@ df['ACT_MASTER'] = df['ACT_MASTER'].dt.normalize()
 # Se guarda en UTF-8 (estándar moderno) sin incluir el índice autogenerado de Pandas.
 df.to_csv("12062026_DATOS_LIMPIOS_POZOS_MASTER.csv", index=False, encoding="utf-8", sep=";")   
 
-# 3.2. Carga en Base de Datos Relacional (SQLite)
-# Se crea un archivo de base de datos local 'mis_datos.db' y se almacena la información.
-# Si la tabla ya existe, se reemplaza ('replace') para evitar duplicidad en ejecuciones sucesivas.
-with sqlite3.connect("mis_datos.db") as conexion:
-    df.to_sql(
-        name="POZOS_MASTER", 
-        con=conexion, 
-        if_exists="replace", 
-        index=False
-    )
+# 3.1. Exportación a Formato Plano Estandarizado (CSV)
+df.to_csv("12062026_DATOS_LIMPIOS_POZOS_MASTER.csv", index=False, encoding="utf-8", sep=";")   
 
-print(">> Pipeline ejecutado con éxito. Datos limpios y guardados en CSV y SQLite.")
+
+# Cargar las variables del archivo .env
+load_dotenv()
+
+# 3.2. Carga en Base de Datos Relacional (PostgreSQL)
+USER = os.getenv('DB_USER')
+PASSWORD = os.getenv('DB_PASSWORD')
+HOST = os.getenv('DB_HOST')
+PORT = os.getenv('DB_PORT')
+DB_NAME = os.getenv('DB_NAME')
+
+# El resto del código del engine se queda exactamente IGUAL
+URL_CONEXION = f'postgresql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}'
+engine = create_engine(URL_CONEXION)
+
+# Inyectamos el DataFrame directamente en el servidor de PostgreSQL
+# Si la tabla ya existe, se reemplaza ('replace') para evitar duplicidad.
+df.to_sql(
+    name="pozos_master",          # Nombre de la tabla en minúsculas
+    con=engine, 
+    if_exists="replace", 
+    index=False
+)
+
+print(">> Pipeline ejecutado con éxito. Datos limpios y guardados en CSV y PostgreSQL (Puerto 5432).")
