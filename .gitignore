@@ -2,3 +2,6 @@
 *.accdb
 *.txt
 *.xlsx
+*.env
+*.db
+*.csv
