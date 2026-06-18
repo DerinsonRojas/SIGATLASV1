@@ -34,7 +34,6 @@ print(">> Ejecutando reglas de transformación y calidad...")
 # 2.1. Diccionario de Renombramiento Formal (Estandarización de Esquema)
 df.columns = df.columns.str.lower()
 
-#Se renombran columnas para clarificar su contenido
 diccionario_nombres = {
     'iden': 'id_pozo',
     'diam1': 'diametro_superior_in',
@@ -45,13 +44,13 @@ diccionario_nombres = {
     'nivel': 'nivel_estatico_m',     
     'nd': 'nivel_dinamico_m',
     'prop': 'propietario',           
-    'lat': 'latitud',                 # Nuevo renombramiento preliminar
-    'lon': 'longitud'                 # Nuevo renombramiento preliminar
+    'lat': 'latitud',                 
+    'lon': 'longitud'                 
 }
 df = df.rename(columns=diccionario_nombres)
 
 # 2.2. Conversión Forzada de Columnas Numéricas Fidedignas
-# Se actualizan las columnas con sus nuevos nombres técnicos (latitud y longitud)
+# ¡PRIMERO PASAMOS A NÚMERO! Así limpiamos cualquier texto oculto en los diámetros.
 columnas_numericas = [
     'latitud', 'longitud', 'const', 'perf', 'gasto', 'cota', 
     'entu', 'nivel_estatico_m', 'nivel_dinamico_m', 'norte', 'este'
@@ -60,7 +59,15 @@ for col in columnas_numericas:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
 
+# Adicionalmente forzamos los diámetros a numérico antes de compararlos
+if 'diametro_superior_in' in df.columns:
+    df['diametro_superior_in'] = pd.to_numeric(df['diametro_superior_in'], errors='coerce')
+if 'diametro_inferior_in' in df.columns:
+    df['diametro_inferior_in'] = pd.to_numeric(df['diametro_inferior_in'], errors='coerce')
+
+
 # 2.3. Control de Calidad Técnico para Diámetros (Umbral de 30" y Regla Telescópica)
+# ¡AHORA SÍ! Como ya son números reales, la comparación matemática funcionará perfectamente.
 if 'diametro_superior_in' in df.columns:
     df.loc[df['diametro_superior_in'] > 30, 'diametro_superior_in'] = pd.NA
 
@@ -69,6 +76,7 @@ if 'diametro_inferior_in' in df.columns:
 
 asimetria_diametros = df['diametro_superior_in'] < df['diametro_inferior_in']
 df.loc[asimetria_diametros, ['diametro_superior_in', 'diametro_inferior_in']] = pd.NA
+
 
 # 2.4. Normalización Booleana Fidedigna para 'ind_bombeo' (Antiguo PBOMBEO)
 mapeo_bombeo = {'SI': True, 'X': True, 'NO': False}
@@ -87,6 +95,15 @@ df['act_master'] = pd.to_datetime(df['act_master'], dayfirst=True, errors='coerc
 if 'feniv' in df.columns:
     df['feniv'] = pd.to_datetime(df['feniv'], dayfirst=True, errors='coerce').dt.normalize()
 
+# ==========================================
+# 2.8. Control de Duplicados en la Clave Primaria
+# ==========================================
+print(f">> Registros antes de eliminar duplicados de ID: {len(df)}")
+
+# Conservamos la primera aparición del ID de pozo y eliminamos las réplicas
+df = df.drop_duplicates(subset=['id_pozo'], keep='first')
+
+print(f">> Registros tras eliminar duplicados de ID: {len(df)}")
 # ==========================================
 # 3. CARGA (Persistencia y Restricciones SQL)
 # ==========================================
@@ -108,9 +125,9 @@ engine = create_engine(URL_CONEXION)
 df.to_sql(name="pozos_master", con=engine, if_exists="replace", index=False)
 
 # Asignación formal de la PRIMARY KEY en PostgreSQL
-with engine.connect() as con:
+# Usamos engine.begin() para que maneje el COMMIT automáticamente sin fallar por versión
+with engine.begin() as con:
     print(">> Asignando clave primaria 'id_pozo' en la base de datos...")
     con.execute(text("ALTER TABLE public.pozos_master ADD PRIMARY KEY (id_pozo);"))
-    con.commit()
 
-print(">> Pipeline Fase 2 actualizado con nuevas etiquetas de esquema.")
+print(">> Pipeline Fase 2 unificado y ejecutado con éxito total.")
