@@ -45,37 +45,38 @@ diccionario_nombres = {
     'nd': 'nivel_dinamico_m',
     'prop': 'propietario',           
     'lat': 'latitud',                 
-    'lon': 'longitud'                 
+    'lon': 'longitud',
+    'gasto':'gasto_l_s',
+    'perf':'prof_perforacion_m',
+    'norte':'norte_m',
+    'este':'este_m',
+    'cota':'altitud_msnm',
+    'entu':'prof_entubado_m'                 
 }
 df = df.rename(columns=diccionario_nombres)
 
 # 2.2. Conversión Forzada de Columnas Numéricas Fidedignas
 # ¡PRIMERO PASAMOS A NÚMERO! Así limpiamos cualquier texto oculto en los diámetros.
 columnas_numericas = [
-    'latitud', 'longitud', 'const', 'perf', 'gasto', 'cota', 
-    'entu', 'nivel_estatico_m', 'nivel_dinamico_m', 'norte', 'este'
+    'latitud', 'longitud', 'prof_perforacion_m', 'gasto_l_s', 'altitud_msnm', 
+    'prof_entubado_m', 'nivel_estatico_m', 'nivel_dinamico_m', 'norte_m', 'este_m',
+    'diametro_superior_in','diametro_inferior_in',
 ]
 for col in columnas_numericas:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
 
-# Adicionalmente forzamos los diámetros a numérico antes de compararlos
-if 'diametro_superior_in' in df.columns:
-    df['diametro_superior_in'] = pd.to_numeric(df['diametro_superior_in'], errors='coerce')
-if 'diametro_inferior_in' in df.columns:
-    df['diametro_inferior_in'] = pd.to_numeric(df['diametro_inferior_in'], errors='coerce')
-
-
 # 2.3. Control de Calidad Técnico para Diámetros (Umbral de 30" y Regla Telescópica)
-# ¡AHORA SÍ! Como ya son números reales, la comparación matemática funcionará perfectamente.
+
 if 'diametro_superior_in' in df.columns:
     df.loc[df['diametro_superior_in'] > 30, 'diametro_superior_in'] = pd.NA
 
 if 'diametro_inferior_in' in df.columns:
     df.loc[df['diametro_inferior_in'] > 30, 'diametro_inferior_in'] = pd.NA
 
-asimetria_diametros = df['diametro_superior_in'] < df['diametro_inferior_in']
-df.loc[asimetria_diametros, ['diametro_superior_in', 'diametro_inferior_in']] = pd.NA
+#Revisar estas lineas de código, ya que no todo el tiempo están las 2 medidas
+#Asimetria_diametros = df['diametro_superior_in'] < df['diametro_inferior_in']
+#df.loc[asimetria_diametros, ['diametro_superior_in', 'diametro_inferior_in']] = pd.NA
 
 
 # 2.4. Normalización Booleana Fidedigna para 'ind_bombeo' (Antiguo PBOMBEO)
