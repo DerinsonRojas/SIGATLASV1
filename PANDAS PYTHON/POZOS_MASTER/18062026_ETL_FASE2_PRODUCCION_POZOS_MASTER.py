@@ -97,7 +97,6 @@ if 'cod_estatus_pozo' in df.columns:
     df['cod_estatus_pozo'] = df['cod_estatus_pozo'].str.upper()
 
 
-
 # 2.7. Control de Duplicados en la Clave Primaria
 
 print(f">> Registros antes de eliminar duplicados de ID: {len(df)}")
@@ -113,6 +112,16 @@ columnas_legacy = ['feniv','const']
 # Forzamos la conversión a 'string' (el tipo de dato nativo de texto en Pandas)
 # Si la versión de pandas es algo antigua, usar 'object' en lugar de 'string'
 df[columnas_legacy] = df[columnas_legacy].astype('string')
+
+#2.9. Estandarización de Fechas (ACT_MASTER)
+# act_master: El significado exacto es desconocido. 
+#             Se sospecha que podría ser fecha de perforación o última visita.
+#             Se conserva el nombre original para preservar la trazabilidad 
+#             con el sistema de origen hasta que se confirme su semántica.
+df['act_master'] = pd.to_datetime(df['act_master'], dayfirst=True, errors='coerce').dt.normalize()
+if 'feniv' in df.columns:
+    df['feniv'] = pd.to_datetime(df['feniv'], dayfirst=True, errors='coerce').dt.normalize()
+
 
 # ==========================================
 # 3. CARGA (Persistencia y Restricciones SQL)
