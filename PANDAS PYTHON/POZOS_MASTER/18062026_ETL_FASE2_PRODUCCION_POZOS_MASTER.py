@@ -74,9 +74,14 @@ if 'diametro_superior_in' in df.columns:
 if 'diametro_inferior_in' in df.columns:
     df.loc[df['diametro_inferior_in'] > 30, 'diametro_inferior_in'] = pd.NA
 
-#Revisar estas lineas de código, ya que no todo el tiempo están las 2 medidas
-#Asimetria_diametros = df['diametro_superior_in'] < df['diametro_inferior_in']
-#df.loc[asimetria_diametros, ['diametro_superior_in', 'diametro_inferior_in']] = pd.NA
+# Regla Telescópica segura: Solo se aplica si AMBOS diámetros existen y el superior es menor al inferior
+if 'diametro_superior_in' in df.columns and 'diametro_inferior_in' in df.columns:
+    asimetria_diametros = (
+        df['diametro_superior_in'].notna() & 
+        df['diametro_inferior_in'].notna() & 
+        (df['diametro_superior_in'] < df['diametro_inferior_in'])
+    )
+    df.loc[asimetria_diametros, ['diametro_superior_in', 'diametro_inferior_in']] = pd.NA
 
 
 # 2.4. Normalización Booleana Fidedigna para 'ind_bombeo' (Antiguo PBOMBEO)
@@ -91,20 +96,24 @@ df['ind_registro'] = df['ind_registro'].map(mapeo_registro).astype('object')
 if 'cod_estatus_pozo' in df.columns:
     df['cod_estatus_pozo'] = df['cod_estatus_pozo'].str.upper()
 
-# 2.7. Estandarización de Fechas (ACT_MASTER y feniv)
-df['act_master'] = pd.to_datetime(df['act_master'], dayfirst=True, errors='coerce').dt.normalize()
-if 'feniv' in df.columns:
-    df['feniv'] = pd.to_datetime(df['feniv'], dayfirst=True, errors='coerce').dt.normalize()
 
-# ==========================================
-# 2.8. Control de Duplicados en la Clave Primaria
-# ==========================================
+
+# 2.7. Control de Duplicados en la Clave Primaria
+
 print(f">> Registros antes de eliminar duplicados de ID: {len(df)}")
 
 # Conservamos la primera aparición del ID de pozo y eliminamos las réplicas
 df = df.drop_duplicates(subset=['id_pozo'], keep='first')
 
 print(f">> Registros tras eliminar duplicados de ID: {len(df)}")
+
+# 2.8. Presevación de columnas desconocidas const y fneiv como string para preservar la data legacy
+
+columnas_legacy = ['feniv','const']
+# Forzamos la conversión a 'string' (el tipo de dato nativo de texto en Pandas)
+# Si tu versión de pandas es algo antigua, usa 'object' en lugar de 'string'
+df[columnas_legacy] = df[columnas_legacy].astype('string')
+
 # ==========================================
 # 3. CARGA (Persistencia y Restricciones SQL)
 # ==========================================
