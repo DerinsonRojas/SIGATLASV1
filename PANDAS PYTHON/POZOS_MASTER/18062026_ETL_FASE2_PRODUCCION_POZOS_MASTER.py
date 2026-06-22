@@ -111,14 +111,14 @@ print(f">> Registros tras eliminar duplicados de ID: {len(df)}")
 
 columnas_legacy = ['feniv','const']
 # Forzamos la conversión a 'string' (el tipo de dato nativo de texto en Pandas)
-# Si tu versión de pandas es algo antigua, usa 'object' en lugar de 'string'
+# Si la versión de pandas es algo antigua, usar 'object' en lugar de 'string'
 df[columnas_legacy] = df[columnas_legacy].astype('string')
 
 # ==========================================
 # 3. CARGA (Persistencia y Restricciones SQL)
 # ==========================================
 print(">> Exportando archivo plano CSV...")
-df.to_csv("18062026_DATOS_LIMPIOS_POZOS_MASTER.csv", index=False, encoding="utf-8", sep=";")     
+df.to_csv("22062026_DATOS_LIMPIOS_POZOS_MASTER.csv", index=False, encoding="utf-8", sep=";")     
 
 print(">> Conectando con PostgreSQL para la carga...")
 load_dotenv()
