@@ -3,7 +3,7 @@ MÓDULO: Pipeline de Extracción, Limpieza y Carga (ETL) - Datos de Pozos
 PROYECTO: Prueba de Concepto - Tesis de Grado
 AUTOR: DERINSON ROJAS
 DESCRIPCIÓN: 
-    Fase 2 - Limpieza Avanzada y Control de Calidad.
+    (Script de ETL y conección a BBDD PostgresSQL funcional) 
     Este script automatiza la ingesta y aplica las reglas de validación técnica
     identificadas en la auditoría de datos (filtros de diámetros, normalización 
     de indicadores booleanos y preservación de códigos de estatus históricos).
@@ -56,7 +56,7 @@ diccionario_nombres = {
 df = df.rename(columns=diccionario_nombres)
 
 # 2.2. Conversión Forzada de Columnas Numéricas Fidedignas
-# ¡PRIMERO PASAMOS A NÚMERO! Así limpiamos cualquier texto oculto en los diámetros.
+# ¡PRIMERO PASAMOS A NÚMERO! Así limpiamos cualquier texto oculto en las variables de magnitudes físicas.
 columnas_numericas = [
     'latitud', 'longitud', 'prof_perforacion_m', 'gasto_l_s', 'altitud_msnm', 
     'prof_entubado_m', 'nivel_estatico_m', 'nivel_dinamico_m', 'norte_m', 'este_m',
@@ -86,11 +86,11 @@ if 'diametro_superior_in' in df.columns and 'diametro_inferior_in' in df.columns
 
 # 2.4. Normalización Booleana Fidedigna para 'ind_bombeo' (Antiguo PBOMBEO)
 mapeo_bombeo = {'SI': True, 'X': True, 'NO': False}
-df['ind_bombeo'] = df['ind_bombeo'].map(mapeo_bombeo).astype('object')
+df['ind_bombeo'] = df['ind_bombeo'].map(mapeo_bombeo).astype('boolean')
 
 # 2.5. Normalización Booleana Fidedigna para 'ind_registro' (Antiguo REG)
 mapeo_registro = {'SI': True, 'S': True, 'X': True, 'NO': False, '0': False}
-df['ind_registro'] = df['ind_registro'].map(mapeo_registro).astype('object')
+df['ind_registro'] = df['ind_registro'].map(mapeo_registro).astype('boolean')
 
 # 2.6. Preservación Estricta de Códigos Informativos 'cod_estatus_pozo' (Antiguo EPOZO)
 if 'cod_estatus_pozo' in df.columns:
@@ -118,10 +118,13 @@ df[columnas_legacy] = df[columnas_legacy].astype('string')
 #             Se sospecha que podría ser fecha de perforación o última visita.
 #             Se conserva el nombre original para preservar la trazabilidad 
 #             con el sistema de origen hasta que se confirme su semántica.
+#Transformación
 df['act_master'] = pd.to_datetime(df['act_master'], dayfirst=True, errors='coerce').dt.normalize()
-if 'feniv' in df.columns:
-    df['feniv'] = pd.to_datetime(df['feniv'], dayfirst=True, errors='coerce').dt.normalize()
 
+## 2. Comprobación de integridad
+total_nulos = df['act_master'].isna().sum()
+if total_nulos > 0:
+    print(f">>Atención: {total_nulos} valores en 'act_master' no pudieron convertirse a fecha y se han convertido en NaT.")
 
 # ==========================================
 # 3. CARGA (Persistencia y Restricciones SQL)
