@@ -10,10 +10,11 @@ DESCRIPCIÓN:
     químicas de los pozos de la BBDD).
 """
 
+import os
 import pandas as pd
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
-import os
+
 
 # ==========================================
 # 1. EXTRACCIÓN (Ingesta de datos crudos)
@@ -97,7 +98,12 @@ URL_CONEXION = f'postgresql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}'
 engine = create_engine(URL_CONEXION)
 
 # Inyección inicial en base de datos
-df.to_sql(name="pozos_quimica", con=engine, if_exists="replace", index=False)
+df.to_sql(name="pozos_quimica", con=engine, if_exists="append", index=False)
+
+
+#Lectura de las fechas limpias por si es necesario algún calculo extra con valores del campo fecha correctos
+query = "SELECT * FROM v_fechas_analitica WHERE estado_fecha = 'VALIDA'"
+df_limpio = pd.read_sql(query, engine)
 '''
 # Asignación formal de la PRIMARY KEY en PostgreSQL
 # Usamos engine.begin() para que maneje el COMMIT automáticamente sin fallar por versión
