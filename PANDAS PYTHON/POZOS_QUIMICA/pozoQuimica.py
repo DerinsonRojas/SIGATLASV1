@@ -12,6 +12,7 @@ DESCRIPCIÓN:
 
 import os
 import pandas as pd
+import numpy as np
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
@@ -38,13 +39,15 @@ df = pd.read_csv(
 df.columns = df.columns.str.lower()
 
 diccionario_nombres = {
-    'iden': 'id_pozo'
+    'iden': 'id_pozo',
+    'temp': 'temperatura_c',
+    'conduc':'conductividad_us_cm'
 }
 df = df.rename(columns=diccionario_nombres)
 
 # 2.2. Limpieza de columnas numéricas (Reemplazar ',' por '.'), Cambio a valor númerico en cada columna donde corresponda
 # Columnas que contienen concentraciones (ejemplo: 'calcio', 'nitratos', etc.)
-columnas_numericas = ['temp','ph','indice','conduc','alc','dtotal','tsd','ras','cl','so4',
+columnas_numericas = ['temperatura_c','ph','indice','conductividad_us_cm','alc','dtotal','tsd','ras','cl','so4',
                       'f','no2','no3','sio2','hco3','co3','fe','mn','b','duca','ca','mg','na','k',
                       'cu','zn','pb','po4'] # Columnas con valores númericos
 
@@ -68,18 +71,33 @@ if total_nulos > 0:
     print(f">>Atención: {total_nulos} valores en 'act_quimi' no pudieron convertirse a fecha y se han convertido en NaT.")
 
 #2.4. Estandarización para la columna fecha
-#La nueva columna fecha tiene un formato original tipo texto con celdas con formatos "----"
-#para marcar valores faltantes, se trabaja a continuación para igualar al formato correcto para fechas
+#Para optimizar la columna fecha se realizo una view en postgresSQL
 
-'''# 2.5. Control de Duplicados en la Clave Primaria
+# 2.5. Normalización de entrada de valores de conductividad para que valores 
+# negativos sean tratados como nan y determinar cuantos negativos aparecen
 
-print(f">> Registros antes de eliminar duplicados de ID: {len(df)}")
+if 'conductividad_us_cm' in df.columns:
+    # Contamos cuántos valores son menores a 0
+    conteo_errores = (df['conductividad_us_cm'] < 0).sum()
+    
+    if conteo_errores > 0:
+        print(f">>Atención: Se detectaron {conteo_errores} valores negativos en 'conductividad_us_cm'. Serán convertidos a NA.")
+        # Aplicamos la limpieza
+        df.loc[df['conductividad_us_cm'] < 0, 'conductividad_us_cm'] = pd.NA
+    else:
+        print("Columna 'conductividad_us_cm' limpia: No se encontraron valores negativos.") 
 
-# Conservamos la primera aparición del ID de pozo y eliminamos las réplicas
-df = df.drop_duplicates(subset=['id_pozo'], keep='first')
+#2.6. Normalización de los valores de indice 
+if 'indice' in df.columns:
+    # Capturamos el 999.9 (o cualquier valor absurdamente alto, por ejemplo > 15)
+    valores_basura = (df['indice'] > 15).sum()
+    
+    if valores_basura > 0:
+        print(f">>Atención: Se detectaron {valores_basura} valores basura (placeholders 999.9) en 'indice'. Serán convertidos a NA.")
+        df.loc[df['indice'] > 15, 'indice'] = pd.NA
+    else:
+        print(" Columna 'indice' libre de valores placeholder altos.")
 
-print(f">> Registros tras eliminar duplicados de ID: {len(df)}")
-'''
 # ==========================================
 # 3. CARGA (Persistencia y Restricciones SQL)
 # ==========================================

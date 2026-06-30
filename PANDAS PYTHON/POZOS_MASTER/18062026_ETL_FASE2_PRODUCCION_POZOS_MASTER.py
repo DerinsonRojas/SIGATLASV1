@@ -121,7 +121,7 @@ df[columnas_legacy] = df[columnas_legacy].astype('string')
 #Transformación
 df['act_master'] = pd.to_datetime(df['act_master'], dayfirst=True, errors='coerce').dt.normalize()
 
-## 2. Comprobación de integridad
+## 2.9.1 Comprobación de integridad
 total_nulos = df['act_master'].isna().sum()
 if total_nulos > 0:
     print(f">>Atención: {total_nulos} valores en 'act_master' no pudieron convertirse a fecha y se han convertido en NaT.")
